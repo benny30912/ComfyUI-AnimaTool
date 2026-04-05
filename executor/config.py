@@ -143,6 +143,19 @@ class AnimaToolConfig:
         default_factory=lambda: _get_env_bool("ANIMATOOL_CHECK_MODELS", True)
     )
 
+    # -------------------------
+    # 雙模型工作流配置
+    # -------------------------
+    # 雙模型接力生成的工作流模板路徑
+    # 預設指向項目根目錄的 Workflow_for_api.json
+    dual_workflow_path: Path = field(
+        default_factory=lambda: (
+            Path(os.environ["ANIMATOOL_DUAL_WORKFLOW"])
+            if os.environ.get("ANIMATOOL_DUAL_WORKFLOW")
+            else Path(__file__).resolve().parent / "Workflow_for_api.json"
+        )
+    )
+
     def get_model_paths(self) -> dict:
         """
         返回模型文件的预期路径（相对于 ComfyUI models 目录）。

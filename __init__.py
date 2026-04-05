@@ -107,7 +107,29 @@ def _setup_routes():
 
         return web.json_response(result)
 
-    print("[ComfyUI-AnimaTool] Routes registered: /anima/health, /anima/schema, /anima/knowledge, /anima/generate")
+    # -------------------------
+    # POST /anima/generate-dual
+    # -------------------------
+    @routes.post("/anima/generate-dual")
+    async def anima_generate_dual(request):
+        try:
+            body = await request.json()
+        except Exception as e:
+            return web.json_response({"error": f"JSON parse error: {e}"}, status=400)
+
+        if "payload" in body and isinstance(body["payload"], dict):
+            payload = body["payload"]
+        else:
+            payload = body
+
+        try:
+            result = await asyncio.to_thread(executor.generate_dual, payload)
+        except Exception as e:
+            return web.json_response({"error": str(e)}, status=500)
+
+        return web.json_response(result)
+
+    print("[ComfyUI-AnimaTool] Routes registered: /anima/health, /anima/schema, /anima/knowledge, /anima/generate, /anima/generate-dual")
 
 
 # ComfyUI 加载 custom_nodes 时会 import 这个模块

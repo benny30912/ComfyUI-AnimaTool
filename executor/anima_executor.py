@@ -487,9 +487,38 @@ class AnimaExecutor:
             data = self._http_get_json(url)
             last = data
             if isinstance(data, dict) and prompt_id in data:
-                return data[prompt_id]
+                history_item = data[prompt_id]
+                self._check_execution_status(history_item, prompt_id)
+                return history_item
             time.sleep(float(self.config.poll_interval_s))
         raise TimeoutError(f"等待 ComfyUI 生成超时：prompt_id={prompt_id}, last={last}")
+
+    def _check_execution_status(self, history_item: Dict[str, Any], prompt_id: str) -> None:
+        """檢查 ComfyUI 執行狀態，若失敗則拋出包含詳細信息的 RuntimeError。"""
+        status = history_item.get("status", {})
+        status_str = status.get("status_str", "")
+        if status_str != "error":
+            return
+
+        # 從 messages 中提取錯誤細節
+        error_parts = []
+        for msg_type, msg_data in status.get("messages", []):
+            if msg_type == "execution_error" and isinstance(msg_data, dict):
+                node_id = msg_data.get("node_id", "?")
+                node_type = msg_data.get("node_type", "?")
+                exc_type = msg_data.get("exception_type", "?")
+                exc_msg = msg_data.get("exception_message", "").strip()
+                error_parts.append(
+                    f"節點 #{node_id} ({node_type}) 執行失敗：{exc_type}: {exc_msg}"
+                )
+
+        if not error_parts:
+            error_parts.append("ComfyUI 回報執行錯誤但未提供詳細信息。")
+
+        raise RuntimeError(
+            f"ComfyUI 工作流執行失敗（prompt_id={prompt_id}）\n"
+            + "\n".join(error_parts)
+        )
 
     def _extract_images(self, prompt_id: str, history_item: Dict[str, Any]) -> List[GeneratedImage]:
         outputs = history_item.get("outputs") or {}
@@ -653,3 +682,209 @@ class AnimaExecutor:
         result["history_id"] = record.id
 
         return result
+
+    # =========================================================================
+    # 雙模型接力生成（Anima + SDXL）
+    # =========================================================================
+
+    def _load_dual_workflow(self) -> Dict[str, Any]:
+        """
+        懶加載雙模型工作流模板（Workflow_for_api.json）。
+        """
+        if not hasattr(self, "_dual_workflow_template") or self._dual_workflow_template is None:
+            path = self.config.dual_workflow_path
+            if not path.exists():
+                raise FileNotFoundError(
+                    f"雙模型工作流模板不存在：{path}\n"
+                    f"請確認 Workflow_for_api.json 已放置到項目根目錄，"
+                    f"或設定 ANIMATOOL_DUAL_WORKFLOW 環境變量指向正確路徑。"
+                )
+            with path.open("r", encoding="utf-8") as f:
+                self._dual_workflow_template: Dict[str, Any] = json.load(f)
+        return self._dual_workflow_template
+
+    def _inject_dual(self, params: Dict[str, Any]) -> Tuple[Dict[str, Any], int]:
+        """
+        將參數注入雙模型工作流模板。
+
+        注入的節點：
+        - #159 Seed (rgthree) — 腳本自動生成
+        - #87  ResolutionSelector — aspect_ratio
+        - #174 anima_prompt — Anima 正向提示詞
+        - #175 anima_prompt_negative — Anima 負向提示詞
+        - #176 SDXL_prompt — SDXL 正向提示詞
+        - #177 SDXL_prompt_negative — SDXL 負向提示詞
+
+        Returns:
+            (workflow, seed)
+        """
+        from .prompt_builder import (
+            build_anima_positive,
+            build_anima_negative,
+            build_sdxl_positive,
+            build_sdxl_negative,
+        )
+
+        wf = deepcopy(self._load_dual_workflow())
+
+        # Seed — 腳本自動生成
+        seed = int.from_bytes(uuid.uuid4().bytes[:4], "big", signed=False)
+        wf["159"]["inputs"]["seed"] = seed
+
+        # 分辨率（aspect_ratio 直接傳給 ResolutionSelector 節點）
+        aspect_ratio = params.get("aspect_ratio", "1:1 (Square)")
+        wf["87"]["inputs"]["aspect_ratio"] = aspect_ratio
+        # megapixels 保持模板預設值，由用戶在 ComfyUI UI 中手動調整
+
+        # 提示詞拼接（不做括號轉義，交給 PromptCleaningMaid 節點）
+        wf["174"]["inputs"]["value"] = build_anima_positive(params)
+        wf["175"]["inputs"]["value"] = build_anima_negative(params)
+        wf["176"]["inputs"]["value"] = build_sdxl_positive(params)
+        wf["177"]["inputs"]["value"] = build_sdxl_negative(params)
+
+        # 檢查並移除 ComfyUI 無法識別的節點
+        wf = self._sanitize_workflow(wf)
+
+        return wf, seed
+
+    def _sanitize_workflow(self, wf: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        檢查工作流中所有節點的 class_type 是否被 ComfyUI 支持。
+        對於不支持的中間層節點（如 CacheDiT 加速器），自動繞過：
+        將下游節點的輸入直接連到上游節點的輸出。
+
+        這解決了 ComfyUI Desktop 版中 UI 能用但 API 端 class_type 驗證失敗的問題。
+        """
+        # 查詢 ComfyUI 可用的節點類型
+        try:
+            known_types = self._get_available_node_types()
+        except Exception:
+            # 如果無法查詢，跳過清理（由後續提交自行報錯）
+            return wf
+
+        # 找出不可用的節點
+        missing_nodes = {}
+        for node_id, node in list(wf.items()):
+            ct = node.get("class_type", "")
+            if ct and ct not in known_types:
+                missing_nodes[node_id] = ct
+
+        if not missing_nodes:
+            return wf
+
+        import sys
+        for node_id, class_type in missing_nodes.items():
+            node = wf[node_id]
+            inputs = node.get("inputs", {})
+
+            # 找到該節點的「model」輸入（上游來源）
+            upstream_ref = None
+            for key, val in inputs.items():
+                if key == "model" and isinstance(val, list) and len(val) == 2:
+                    upstream_ref = val  # e.g. ["80", 0]
+                    break
+
+            if upstream_ref is None:
+                # 非 model 直通型節點，無法自動繞過
+                print(
+                    f"[AnimaTool] WARNING: 節點 #{node_id} ({class_type}) 不可用且無法自動繞過，"
+                    f"可能導致提交失敗。",
+                    file=sys.stderr,
+                )
+                continue
+
+            # 將所有引用此節點輸出的下游節點，改為直接引用上游
+            for other_id, other_node in wf.items():
+                if other_id == node_id:
+                    continue
+                for key, val in other_node.get("inputs", {}).items():
+                    if isinstance(val, list) and len(val) == 2 and val[0] == node_id:
+                        other_node["inputs"][key] = upstream_ref
+
+            # 移除不可用的節點
+            del wf[node_id]
+            title = node.get("_meta", {}).get("title", class_type)
+            print(
+                f"[AnimaTool] 已自動繞過不可用節點 #{node_id} ({title})，"
+                f"上游 #{upstream_ref[0]} 直接連接下游。",
+                file=sys.stderr,
+            )
+
+        return wf
+
+    def _get_available_node_types(self) -> set:
+        """查詢 ComfyUI 當前可用的所有節點類型。結果快取 5 分鐘。"""
+        now = time.time()
+        cache_ttl = 300  # 5 分鐘
+        if (
+            hasattr(self, "_available_node_types_cache")
+            and self._available_node_types_cache
+            and hasattr(self, "_available_node_types_ts")
+            and (now - self._available_node_types_ts) < cache_ttl
+        ):
+            return self._available_node_types_cache
+
+        url = self.config.comfyui_url.rstrip("/") + "/object_info"
+        data = self._http_get_json(url)
+        self._available_node_types_cache: set = set(data.keys()) if isinstance(data, dict) else set()
+        self._available_node_types_ts = now
+        return self._available_node_types_cache
+
+    def generate_dual(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        雙模型接力生成（Anima + SDXL）。
+
+        輸入 AI 提供的語義結構 JSON，拼接雙模型提示詞，注入工作流，
+        提交到 ComfyUI 執行，等待完成後下載圖片。
+
+        Returns:
+            {
+                "success": True,
+                "images": [ ... ],
+                "history_id": int,
+            }
+        """
+        wf, seed = self._inject_dual(params)
+        prompt_id = self.queue_prompt(wf)
+        history_item = self.wait_history(prompt_id)
+        images = self._extract_images(prompt_id, history_item)
+        images = self._download_images(images)
+
+        # 構建圖片數據（同 generate() 的邏輯）
+        images_data = []
+        for im in images:
+            mime_type = self._get_mime_type(im.filename)
+            b64 = base64.b64encode(im.content).decode("ascii") if im.content else None
+
+            img_info = {
+                "filename": im.filename,
+                "subfolder": im.subfolder,
+                "type": im.folder_type,
+                "url": im.view_url,
+                "view_url": im.view_url,
+                "file_path": im.saved_path,
+                "saved_path": im.saved_path,
+                "base64": b64,
+                "mime_type": mime_type,
+                "data_url": f"data:{mime_type};base64,{b64}" if b64 else None,
+                "markdown": f"![{im.filename}]({im.view_url})",
+            }
+            images_data.append(img_info)
+
+        result = {
+            "success": True,
+            "images": images_data,
+        }
+
+        # 記錄到歷史
+        record = self.history.add(
+            params=params,
+            positive_text=wf["174"]["inputs"]["value"],
+            negative_text=wf["175"]["inputs"]["value"],
+            prompt_id=prompt_id,
+            seed=seed,
+        )
+        result["history_id"] = record.id
+
+        return result
+

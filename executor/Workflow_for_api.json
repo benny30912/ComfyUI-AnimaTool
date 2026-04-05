@@ -1,0 +1,651 @@
+{
+  "3": {
+    "inputs": {
+      "seed": [
+        "159",
+        0
+      ],
+      "steps": 10,
+      "cfg": 5,
+      "sampler_name": "dpmpp_2m_sde_gpu",
+      "scheduler": "normal",
+      "denoise": 1,
+      "model": [
+        "171",
+        0
+      ],
+      "positive": [
+        "43",
+        0
+      ],
+      "negative": [
+        "78",
+        0
+      ],
+      "latent_image": [
+        "5",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "5": {
+    "inputs": {
+      "width": [
+        "87",
+        0
+      ],
+      "height": [
+        "87",
+        1
+      ],
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "空白潛在影像"
+    }
+  },
+  "7": {
+    "inputs": {
+      "text": [
+        "164",
+        0
+      ],
+      "clip": [
+        "19",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "負向提示詞(Anima)"
+    }
+  },
+  "8": {
+    "inputs": {
+      "samples": [
+        "3",
+        0
+      ],
+      "vae": [
+        "122",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE 解碼"
+    }
+  },
+  "19": {
+    "inputs": {
+      "text": "",
+      "loras": {
+        "__value__": []
+      },
+      "model": [
+        "120",
+        0
+      ],
+      "clip": [
+        "121",
+        0
+      ]
+    },
+    "class_type": "Lora Loader (LoraManager)",
+    "_meta": {
+      "title": "1️⃣Lora堆(Anima)"
+    }
+  },
+  "43": {
+    "inputs": {
+      "text": [
+        "163",
+        0
+      ],
+      "clip": [
+        "19",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "正向提示詞(Anima)"
+    }
+  },
+  "78": {
+    "inputs": {
+      "start": 0,
+      "end": 0.7,
+      "conditioning": [
+        "7",
+        0
+      ]
+    },
+    "class_type": "ConditioningSetTimestepRange",
+    "_meta": {
+      "title": "條件設定（時間步範圍）"
+    }
+  },
+  "80": {
+    "inputs": {
+      "method": "from cond",
+      "model": [
+        "19",
+        0
+      ]
+    },
+    "class_type": "Support empty uncond",
+    "_meta": {
+      "title": "Support empty uncond"
+    }
+  },
+  "87": {
+    "inputs": {
+      "aspect_ratio": "1:1 (Square)",
+      "megapixels": 1
+    },
+    "class_type": "ResolutionSelector",
+    "_meta": {
+      "title": "解析度選擇器"
+    }
+  },
+  "120": {
+    "inputs": {
+      "unet_name": "anima-preview2.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "載入擴散模型"
+    }
+  },
+  "121": {
+    "inputs": {
+      "clip_name": "qwen_3_06b_base.safetensors",
+      "type": "stable_diffusion",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "載入 CLIP"
+    }
+  },
+  "122": {
+    "inputs": {
+      "vae_name": "qwen_image_vae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "載入 VAE"
+    }
+  },
+  "127": {
+    "inputs": {
+      "ckpt_name": "waiIllustriousSDXL_v160.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "載入檢查點"
+    }
+  },
+  "128": {
+    "inputs": {
+      "pixels": [
+        "8",
+        0
+      ],
+      "vae": [
+        "127",
+        2
+      ]
+    },
+    "class_type": "VAEEncode",
+    "_meta": {
+      "title": "VAE 編碼"
+    }
+  },
+  "129": {
+    "inputs": {
+      "seed": [
+        "159",
+        0
+      ],
+      "steps": 25,
+      "cfg": 6,
+      "sampler_name": "euler_ancestral",
+      "scheduler": "normal",
+      "denoise": 0.5,
+      "model": [
+        "172",
+        0
+      ],
+      "positive": [
+        "141",
+        0
+      ],
+      "negative": [
+        "145",
+        0
+      ],
+      "latent_image": [
+        "128",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "130": {
+    "inputs": {
+      "samples": [
+        "129",
+        0
+      ],
+      "vae": [
+        "127",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE 解碼"
+    }
+  },
+  "141": {
+    "inputs": {
+      "text": [
+        "165",
+        0
+      ],
+      "clip": [
+        "147",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "正向提示詞(SDXL)"
+    }
+  },
+  "145": {
+    "inputs": {
+      "start": 0,
+      "end": 0.7,
+      "conditioning": [
+        "180",
+        0
+      ]
+    },
+    "class_type": "ConditioningSetTimestepRange",
+    "_meta": {
+      "title": "條件設定（時間步範圍）"
+    }
+  },
+  "146": {
+    "inputs": {
+      "method": "from cond",
+      "model": [
+        "147",
+        0
+      ]
+    },
+    "class_type": "Support empty uncond",
+    "_meta": {
+      "title": "Support empty uncond"
+    }
+  },
+  "147": {
+    "inputs": {
+      "text": "<lora:Better_detailed_pussy_and_anus_v3.0:0.60><lora:Extreme-Sex-v2.0-IllustriousXLNoobAI:1.00>",
+      "loras": {
+        "__value__": [
+          {
+            "name": "Better_detailed_pussy_and_anus_v3.0",
+            "strength": "0.60",
+            "active": false,
+            "expanded": false,
+            "clipStrength": "0.60",
+            "locked": false
+          },
+          {
+            "name": "Extreme-Sex-v2.0-IllustriousXLNoobAI",
+            "strength": 1,
+            "active": false,
+            "expanded": false,
+            "clipStrength": 1,
+            "locked": false
+          }
+        ]
+      },
+      "model": [
+        "127",
+        0
+      ],
+      "clip": [
+        "127",
+        1
+      ]
+    },
+    "class_type": "Lora Loader (LoraManager)",
+    "_meta": {
+      "title": "1️⃣Lora堆(SDXL)"
+    }
+  },
+  "154": {
+    "inputs": {
+      "purge_cache": true,
+      "purge_models": true,
+      "anything": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "LayerUtility: PurgeVRAM",
+    "_meta": {
+      "title": "LayerUtility: Purge VRAM"
+    }
+  },
+  "158": {
+    "inputs": {
+      "positive": "",
+      "auto_random": false,
+      "temp_str": "",
+      "random_template": "",
+      "打开提示词编辑器": ""
+    },
+    "class_type": "WeiLinPromptUIWithoutLora",
+    "_meta": {
+      "title": "手動提示詞補充"
+    }
+  },
+  "159": {
+    "inputs": {
+      "seed": 131847521295057
+    },
+    "class_type": "Seed (rgthree)",
+    "_meta": {
+      "title": "Seed (rgthree)"
+    }
+  },
+  "163": {
+    "inputs": {
+      "清理逗号 (cleanup_commas)": true,
+      "清理空白 (cleanup_whitespace)": true,
+      "移除LoRA标签 (remove_lora_tags)": false,
+      "清理换行 (cleanup_newlines)": "空格 (space)",
+      "修复括号 (fix_brackets)": "两者 (both)",
+      "提示词格式化 (prompt_formatting)": true,
+      "下划线转空格 (underscore_to_space)": true,
+      "权重语法补全 (complete_weight_syntax)": true,
+      "智能括号转义 (smart_bracket_escaping)": true,
+      "标准化逗号 (standardize_commas)": true,
+      "修复分区语法 (fix_region_syntax)": true,
+      "string": [
+        "179",
+        0
+      ]
+    },
+    "class_type": "PromptCleaningMaid",
+    "_meta": {
+      "title": "提示词清洁女仆 (Prompt Cleaning Maid)"
+    }
+  },
+  "164": {
+    "inputs": {
+      "清理逗号 (cleanup_commas)": true,
+      "清理空白 (cleanup_whitespace)": true,
+      "移除LoRA标签 (remove_lora_tags)": false,
+      "清理换行 (cleanup_newlines)": "空格 (space)",
+      "修复括号 (fix_brackets)": "两者 (both)",
+      "提示词格式化 (prompt_formatting)": true,
+      "下划线转空格 (underscore_to_space)": true,
+      "权重语法补全 (complete_weight_syntax)": true,
+      "智能括号转义 (smart_bracket_escaping)": true,
+      "标准化逗号 (standardize_commas)": true,
+      "修复分区语法 (fix_region_syntax)": true,
+      "string": [
+        "175",
+        0
+      ]
+    },
+    "class_type": "PromptCleaningMaid",
+    "_meta": {
+      "title": "提示词清洁女仆 (Prompt Cleaning Maid)"
+    }
+  },
+  "165": {
+    "inputs": {
+      "清理逗号 (cleanup_commas)": true,
+      "清理空白 (cleanup_whitespace)": true,
+      "移除LoRA标签 (remove_lora_tags)": false,
+      "清理换行 (cleanup_newlines)": "空格 (space)",
+      "修复括号 (fix_brackets)": "两者 (both)",
+      "提示词格式化 (prompt_formatting)": true,
+      "下划线转空格 (underscore_to_space)": true,
+      "权重语法补全 (complete_weight_syntax)": true,
+      "智能括号转义 (smart_bracket_escaping)": true,
+      "标准化逗号 (standardize_commas)": true,
+      "修复分区语法 (fix_region_syntax)": true,
+      "string": [
+        "182",
+        0
+      ]
+    },
+    "class_type": "PromptCleaningMaid",
+    "_meta": {
+      "title": "提示词清洁女仆 (Prompt Cleaning Maid)"
+    }
+  },
+  "167": {
+    "inputs": {
+      "group_mode": false,
+      "default_active": false,
+      "allow_strength_adjustment": false,
+      "toggle_trigger_words": {
+        "__value__": []
+      },
+      "orinalMessage": "",
+      "trigger_words": [
+        "147",
+        2
+      ]
+    },
+    "class_type": "TriggerWord Toggle (LoraManager)",
+    "_meta": {
+      "title": "TriggerWord Toggle (LoraManager)"
+    }
+  },
+  "169": {
+    "inputs": {
+      "purge_cache": true,
+      "purge_models": true,
+      "anything": [
+        "130",
+        0
+      ]
+    },
+    "class_type": "LayerUtility: PurgeVRAM",
+    "_meta": {
+      "title": "LayerUtility: Purge VRAM"
+    }
+  },
+  "171": {
+    "inputs": {
+      "enable": true,
+      "model_type": "Auto",
+      "warmup_steps": 0,
+      "skip_interval": 0,
+      "print_summary": false,
+      "model": [
+        "80",
+        0
+      ]
+    },
+    "class_type": "CacheDiT_Model_Optimizer",
+    "_meta": {
+      "title": "⚡ CacheDiT Accelerator"
+    }
+  },
+  "172": {
+    "inputs": {
+      "object_to_patch": "diffusion_model",
+      "residual_diff_threshold": 0.2,
+      "start": 0.2,
+      "end": 0.8,
+      "max_consecutive_cache_hits": 5,
+      "model": [
+        "146",
+        0
+      ]
+    },
+    "class_type": "ApplyFBCacheOnModel",
+    "_meta": {
+      "title": "Apply First Block Cache"
+    }
+  },
+  "174": {
+    "inputs": {
+      "value": ""
+    },
+    "class_type": "easy string",
+    "_meta": {
+      "title": "anima_prompt"
+    }
+  },
+  "175": {
+    "inputs": {
+      "value": ""
+    },
+    "class_type": "easy string",
+    "_meta": {
+      "title": "anima_prompt_negtive"
+    }
+  },
+  "176": {
+    "inputs": {
+      "value": ""
+    },
+    "class_type": "easy string",
+    "_meta": {
+      "title": "SDXL_prompt"
+    }
+  },
+  "177": {
+    "inputs": {
+      "value": ""
+    },
+    "class_type": "easy string",
+    "_meta": {
+      "title": "SDXL_prompt_negtive"
+    }
+  },
+  "179": {
+    "inputs": {
+      "separator": ", ",
+      "prompt1": [
+        "174",
+        0
+      ],
+      "prompt2": [
+        "158",
+        0
+      ]
+    },
+    "class_type": "easy promptConcat",
+    "_meta": {
+      "title": "easy promptConcat"
+    }
+  },
+  "180": {
+    "inputs": {
+      "text": [
+        "181",
+        0
+      ],
+      "clip": [
+        "147",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "負向提示詞(SDXL)"
+    }
+  },
+  "181": {
+    "inputs": {
+      "清理逗号 (cleanup_commas)": true,
+      "清理空白 (cleanup_whitespace)": true,
+      "移除LoRA标签 (remove_lora_tags)": false,
+      "清理换行 (cleanup_newlines)": "空格 (space)",
+      "修复括号 (fix_brackets)": "两者 (both)",
+      "提示词格式化 (prompt_formatting)": true,
+      "下划线转空格 (underscore_to_space)": true,
+      "权重语法补全 (complete_weight_syntax)": true,
+      "智能括号转义 (smart_bracket_escaping)": true,
+      "标准化逗号 (standardize_commas)": true,
+      "修复分区语法 (fix_region_syntax)": true,
+      "string": [
+        "177",
+        0
+      ]
+    },
+    "class_type": "PromptCleaningMaid",
+    "_meta": {
+      "title": "提示词清洁女仆 (Prompt Cleaning Maid)"
+    }
+  },
+  "182": {
+    "inputs": {
+      "separator": ", ",
+      "prompt1": [
+        "184",
+        0
+      ],
+      "prompt2": [
+        "158",
+        0
+      ]
+    },
+    "class_type": "easy promptConcat",
+    "_meta": {
+      "title": "easy promptConcat"
+    }
+  },
+  "183": {
+    "inputs": {
+      "images": [
+        "130",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "預覽圖片"
+    }
+  },
+  "184": {
+    "inputs": {
+      "separator": ", ",
+      "prompt1": [
+        "167",
+        0
+      ],
+      "prompt2": [
+        "176",
+        0
+      ]
+    },
+    "class_type": "easy promptConcat",
+    "_meta": {
+      "title": "easy promptConcat"
+    }
+  }
+}

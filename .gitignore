@@ -20,6 +20,7 @@ ENV/
 # IDE
 .idea/
 .vscode/
+.vs/
 *.swp
 *.swo
 *~
@@ -30,3 +31,6 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Knowledge base
+ref/
